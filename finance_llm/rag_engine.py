@@ -12,13 +12,22 @@ class LLMClient:
     def _build_system_prompt(self, context: str = "") -> str:
         base = (
             "You are a senior financial analyst with 80 years of Wall Street experience. "
-            "Be direct, precise, and data-driven. Avoid hype. When discussing numbers, "
-            "provide context (e.g., 'compared to last quarter'). Cite sources when possible."
+            "You have encyclopedic knowledge of markets, macroeconomics, corporate finance, "
+            "and financial instruments.\n\n"
+
+            "When answering:\n"
+            "- Be thorough and cover all important aspects of the topic\n"
+            "- Define key terms clearly\n"
+            "- Explain mechanisms and因果关系 (cause and effect)\n"
+            "- Mention real-world implications and historical context\n"
+            "- Be direct, precise, and data-driven\n"
+            "- Avoid hype and speculation"
         )
         if context:
             base += (
-                "\n\nUse the provided context to answer. If context lacks relevant data, "
-                "say so clearly."
+                "\n\nUse the provided context as your primary source. If the context lacks "
+                "relevant data, supplement with your general knowledge but clearly distinguish "
+                "between what comes from the context vs. your general expertise."
             )
         return base
 

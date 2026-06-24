@@ -1,267 +1,433 @@
 <div align="center">
-  <h1>📈 Finance LLM</h1>
-  <p><strong>Your 80-Year Wall Street Veteran — Powered by RAG + LLM</strong></p>
-  <p>
-    <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python">
-    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs">
-    <img src="https://img.shields.io/badge/LLM-OpenAI%20%7C%20Anthropic%20%7C%20Ollama-orange" alt="Multi-LLM">
-  </p>
+
+# 📈 Finance LLM
+
+### *Your 80-Year Wall Street Veteran — Powered by RAG*
+
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com)
+[![Anthropic](https://img.shields.io/badge/Anthropic-Claude-9775FA?style=for-the-badge)](https://anthropic.com)
+[![Ollama](https://img.shields.io/badge/Ollama-Local-000?style=for-the-badge&logo=ollama)](https://ollama.ai)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+
+[![GitHub last commit](https://img.shields.io/github/last-commit/mutima89/finance-llm?style=flat-square&color=blue)](https://github.com/mutima89/finance-llm/commits)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/mutima89/finance-llm/pulls)
+
+> *"What I cannot create, I do not understand." — Richard Feynman*
+
+---
+
+[✨ Features](#-features) • [🚀 Quick Start](#-quick-start) • [🖥️ Interfaces](#️-interfaces) • [🔄 Multi-LLM](#-multi-llm-support) • [🏛️ Architecture](#️-architecture) • [📦 Structure](#-project-structure) • [⚙️ Config](#️-configuration) • [🐳 Docker](#-docker-deployment) • [🧪 Eval](#-evaluation) • [📊 Examples](#-examples)
+
+---
+
+</div>
+
+## 💡 What is Finance LLM?
+
+**Finance LLM** is a **Retrieval-Augmented Generation (RAG)** system that turns an LLM into a crack financial analyst with 80 years of Wall Street experience. Feed it earnings reports, SEC filings, news, PDFs, or stock data — then ask questions in plain English and get **cited, data-driven answers**.
+
+```mermaid
+graph LR
+    A[📄 PDFs] --> D[RAG Engine]
+    B[📰 RSS News] --> D
+    C[🏛️ SEC Filings] --> D
+    E[📊 Stock Data] --> D
+    F[🌐 Webpages] --> D
+    D --> G[🧠 LLM]
+    G --> H[💬 Answer + Citations]
+```
+
+---
+
+## ✨ Features
+
+<div>
+
+| | Capability | Details |
+|---|---|---|
+| 🧠 | **Multi-LLM** | OpenAI GPT-4o · Anthropic Claude · Ollama (local) — switch via `.env` |
+| 📚 | **RAG Architecture** | Retrieves relevant chunks before answering — no hallucination |
+| 📰 | **RSS Feeds** | Bloomberg, WSJ, FT, Economist — one command ingests the latest |
+| 📄 | **PDF Ingestion** | Earnings reports, whitepapers, research — `pypdf` powered |
+| 🏛️ | **SEC EDGAR** | 10-K, 10-Q, 8-K filings pulled directly from sec.gov |
+| 📊 | **Stock Data** | yfinance integration — market cap, PE, financials, insider info |
+| 🌐 | **Web Scraper** | Any URL — article, blog, SEC filing page |
+| 🔍 | **Cited Answers** | Every response includes sources + relevance scores |
+| 💬 | **CLI + API + UI** | Terminal · Streamlit UI · FastAPI REST — pick your interface |
+| ⏰ | **Auto-Scheduler** | Background worker ingests RSS every N hours — always current |
+| 🧪 | **Evaluation Suite** | 5 built-in QA pairs measure retrieval accuracy |
+| 🐳 | **Docker Ready** | `docker compose up -d` — full stack in 30 seconds |
+
 </div>
 
 ---
 
-**Finance LLM** is a Retrieval-Augmented Generation (RAG) system that acts as a seasoned financial analyst. It ingests financial news, SEC filings, earnings reports, stock data, and PDFs — then answers questions with precision, context, and source citations.
-
-## ✨ Features
-
-- 🧠 **Multi-LLM Support** — OpenAI GPT-4o, Anthropic Claude, or local Ollama models
-- 📚 **RAG Architecture** — Retrieves relevant context from ingested documents before answering
-- 📰 **RSS Ingestion** — Pulls latest news from Bloomberg, WSJ, FT, Economist
-- 🌐 **Web Ingestion** — Scrape any webpage (SEC filings, earnings transcripts)
-- 📄 **PDF Ingestion** — Parse earnings reports, whitepapers, research PDFs
-- 📊 **Stock Data** — Pull live company data via yfinance
-- 🏛️ **SEC Filings** — Fetch 10-K, 10-Q, 8-K filings directly from EDGAR
-- 🔍 **Source Citations** — Every answer includes references with relevance scores
-- 💬 **CLI & API & Web UI** — Terminal, FastAPI, and Streamlit interfaces
-- ⏰ **Auto-Scheduler** — Background RSS ingestion at configurable intervals
-- 📊 **Persistent Index** — Embeddings saved locally, survives restarts
-- 🧪 **Evaluation Suite** — Built-in QA pairs to measure retrieval quality
-
 ## 🚀 Quick Start
 
-### 1. Clone & Install
+### 📋 Prerequisites
+
+- Python 3.10+
+- An API key from [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/), or [Ollama](https://ollama.ai) (local)
+
+### ⚡ 60-Second Setup
 
 ```bash
-git clone https://github.com/mutima89/finance-llm.git
-cd finance-llm
+# 1. Clone
+git clone https://github.com/mutima89/finance-llm.git && cd finance-llm
+
+# 2. Install
 pip install -r requirements.txt
-```
 
-### 2. Set your API key
-
-```bash
+# 3. Configure
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY (or ANTHROPIC_API_KEY)
+# → Edit .env and paste your OPENAI_API_KEY
 ```
 
-### 3. Ingest knowledge
+### 📥 Feed It Knowledge
 
 ```bash
-# Latest financial news
+# 📰 Latest financial news (Bloomberg, WSJ, FT, Economist)
 python main.py ingest --rss
 
-# PDF earnings report
+# 📄 PDF earnings report
 python main.py ingest --pdf reports/q3-earnings.pdf
 
-# Stock data
+# 📊 Stock data
 python main.py ingest --ticker AAPL
 
-# SEC filing
+# 🏛️ SEC 10-K filing
 python main.py ingest --sec MSFT --sec-type 10-K
 
-# Web article
+# 🌐 Any article
 python main.py ingest --url https://example.com/analysis
-```
 
-### 4. Ask questions
-
-```bash
-# One-shot query
-python main.py query "What's the market outlook for Q4 2026?"
-
-# Interactive chat mode
-python main.py chat
-
-# Check your knowledge base
+# 🔍 Check what's loaded
 python main.py stats
 ```
 
-### 5. Launch the Web UI
+### 💬 Ask Questions
 
 ```bash
+# One-shot
+python main.py query "What's the Fed's current stance on rates?"
+
+# Interactive chat
+python main.py chat
+
+# Or launch the web UI
 python main.py ui
-# → http://localhost:8501
+# → Opens http://localhost:8501
 ```
 
-### 6. Start the API server
+### 🌐 REST API
 
 ```bash
 python -c "from finance_llm.app import serve; serve()"
-# → http://localhost:8000
 
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"question": "Analyze the latest Fed rate decision"}'
 ```
 
+---
+
 ## 🖥️ Interfaces
 
-| Interface | Command | URL |
-|-----------|---------|-----|
-| **CLI** | `python main.py query/ingest/chat` | Terminal |
-| **Web UI** | `python main.py ui` | `http://localhost:8501` |
-| **REST API** | `python -c "from finance_llm.app import serve; serve()"` | `http://localhost:8000` |
+| Interface | Command | URL | Best For |
+|-----------|---------|-----|----------|
+| **💻 CLI** | `python main.py query "..."` | Terminal | Quick answers, scripting |
+| **💬 Chat** | `python main.py chat` | Terminal | Interactive conversations |
+| **🌐 Web UI** | `python main.py ui` | `http://localhost:8501` | Visual exploration, file uploads |
+| **⚡ API** | `python -c "from finance_llm.app import serve; serve()"` | `http://localhost:8000` | Integration, automation |
+
+---
 
 ## 🔄 Multi-LLM Support
 
-Switch providers via `.env`:
+Switch between providers without changing a single line of code:
+
+<table>
+<tr>
+<th>OpenAI</th>
+<th>Anthropic Claude</th>
+<th>Local (Ollama)</th>
+</tr>
+<tr>
+<td>
 
 ```env
-# OpenAI (default)
 FINANCE_LLM_PROVIDER=openai
 FINANCE_LLM_MODEL=gpt-4o
 OPENAI_API_KEY=sk-...
+```
 
-# Anthropic Claude
+</td>
+<td>
+
+```env
 FINANCE_LLM_PROVIDER=anthropic
 FINANCE_LLM_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_API_KEY=sk-ant-...
+```
 
-# Local with Ollama
+</td>
+<td>
+
+```env
 FINANCE_LLM_PROVIDER=ollama
 FINANCE_LLM_MODEL=llama3
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-Embeddings can also be configured independently:
+</td>
+</tr>
+</table>
+
+Embeddings can also run independently via Ollama:
 ```env
 EMBEDDING_PROVIDER=ollama
 EMBEDDING_MODEL=nomic-embed-text
 ```
 
+---
+
+## 🏛️ Architecture
+
+```
+                        ┌─────────────────────────────┐
+                        │       DATA SOURCES          │
+                        │                             │
+     ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────┴─────┐
+     │  📰 RSS   │  │  📄 PDF  │  │  📊 Yahoo│  │ 🏛️ SEC   │
+     │ Bloomberg │  │ Reports  │  │ Finance  │  │ EDGAR    │
+     │ WSJ, FT   │  │ 10-K/10-Q│  │ Stock    │  │ Filings  │
+     └─────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
+           │              │             │              │
+           └──────────────┴─────────────┴──────────────┘
+                                    │
+                                    ▼
+                        ┌─────────────────────────────┐
+                        │      TEXT SPLITTER           │
+                        │  RecursiveCharacter split    │
+                        │  Chunk: 1000 chars / 200 ov  │
+                        └─────────────┬───────────────┘
+                                      │
+                                      ▼
+                        ┌─────────────────────────────┐
+                        │     EMBEDDING MODEL          │
+                        │  text-embedding-3-small      │
+                        │  or nomic-embed-text (local) │
+                        └─────────────┬───────────────┘
+                                      │
+                                      ▼
+                        ┌─────────────────────────────┐
+                        │      VECTOR STORE            │
+                        │  numpy matrix + cosine sim   │
+                        │  Persisted to disk (JSONL)   │
+                        └─────────────┬───────────────┘
+                                      │
+                ┌─────────────────────┴─────────────────────┐
+                │                                           │
+                ▼                                           ▼
+    ┌─────────────────────────┐              ┌─────────────────────────┐
+    │   USER QUESTION         │              │   RETRIEVAL             │
+    │   "What's the outlook?" │─────────────▶│   Embed question        │
+    └─────────────────────────┘              │   Top-K cosine sim      │
+                                             │   → context chunks      │
+                                             └────────────┬────────────┘
+                                                          │
+                                                          ▼
+                                             ┌─────────────────────────┐
+                                             │   LLM (GPT-4o/Claude)   │
+                                             │   System prompt (80yr   │
+                                             │   analyst persona)      │
+                                             │   + context + question  │
+                                             └────────────┬────────────┘
+                                                          │
+                                                          ▼
+                                             ┌─────────────────────────┐
+                                             │    ANSWER + CITATIONS   │
+                                             │   "Based on FOMC mins.. │
+                                             │   Source: Fed.gov (0.92)"│
+                                             └─────────────────────────┘
+```
+
+---
+
 ## 📦 Project Structure
 
 ```
 finance-llm/
-├── main.py                    # Entry point (CLI)
-├── requirements.txt           # Dependencies
-├── Dockerfile                 # Docker image
-├── docker-compose.yml         # Multi-service (API + UI)
-├── .env.example               # API key template
-├── .gitignore
-├── data/
-│   ├── chroma_db/             # Persistent vector index (auto-created)
-│   └── documents/             # Place your source files here
-└── finance_llm/
-    ├── __init__.py
-    ├── config.py              # Settings (model, chunk size, RSS feeds)
-    ├── rag_engine.py          # Core RAG (multi-LLM, embeddings, retrieval)
-    ├── ingestion.py           # Data ingestion (text, PDF, URLs, RSS, SEC, yfinance)
-    ├── cli.py                 # Typer CLI (query, ingest, chat, stats, schedule, evaluate, ui)
-    ├── app.py                 # FastAPI REST server
-    ├── ui.py                  # Streamlit web interface
-    ├── scheduler.py           # Background RSS ingestion scheduler
-    └── evaluate.py            # RAG evaluation suite
+├── 📄 main.py                          # CLI entry point
+├── 📄 requirements.txt                 # Python dependencies
+├── 📄 Dockerfile                       # Docker image
+├── 📄 docker-compose.yml               # Multi-service orchestration
+├── 📄 .env.example                     # Configuration template
+├── 📄 .gitignore
+│
+├── 📁 data/
+│   ├── 📁 chroma_db/                   # Persistent vector index
+│   └── 📁 documents/                   # Your source files
+│
+└── 📁 finance_llm/                     # Core package
+    ├── 📄 __init__.py
+    ├── 📄 config.py                    # Settings & environment
+    ├── 📄 rag_engine.py                # RAG: embeddings, retrieval, LLM
+    ├── 📄 ingestion.py                 # Data ingestion pipeline
+    ├── 📄 cli.py                       # Typer CLI (7 commands)
+    ├── 📄 app.py                       # FastAPI server
+    ├── 📄 ui.py                        # Streamlit web interface
+    ├── 📄 scheduler.py                 # Auto-ingestion scheduler
+    └── 📄 evaluate.py                  # RAG evaluation suite
 ```
 
-## 🧠 How It Works
-
-```
-                    ┌─────────────────┐
-                    │  Your Documents  │
-                    │  (news, PDFs,    │
-                    │   SEC, stock,    │
-                    │   RSS, web)      │
-                    └────────┬────────┘
-                             │ ingest
-                             ▼
-                    ┌─────────────────┐
-                    │  Text Splitter   │
-                    │  → chunks        │
-                    └────────┬────────┘
-                             │ embed
-                             ▼
-                    ┌─────────────────┐
-                    │  Vector Index    │
-                    │  (numpy + cosine)│
-                    └────────┬────────┘
-                             │ retrieve
-          ┌──────────────────┴──────────────────┐
-          │  User Question                      │
-          │      │                              │
-          │      ▼                              │
-          │  Embed question → cosine sim        │
-          │  → top-k chunks + context           │
-          │      │                              │
-          │      ▼                              │
-          │  LLM (GPT-4o / Claude / Ollama)     │
-          │  + context + prompt                 │
-          │      │                              │
-          │      ▼                              │
-          │  Answer + Source Citations           │
-          └─────────────────────────────────────┘
-```
+---
 
 ## ⚙️ Configuration
 
+### Environment Variables
+
+| Variable | Default | Options / Description |
+|----------|---------|----------------------|
+| `FINANCE_LLM_PROVIDER` | `openai` | `openai` · `anthropic` · `ollama` |
+| `FINANCE_LLM_MODEL` | `gpt-4o` | Any model the provider supports |
+| `OPENAI_API_KEY` | — | Your OpenAI key |
+| `ANTHROPIC_API_KEY` | — | Your Anthropic key |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server |
+| `EMBEDDING_PROVIDER` | `openai` | `openai` · `ollama` |
+| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model name |
+
+### RAG Tuning
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FINANCE_LLM_PROVIDER` | `openai` | LLM provider (`openai`, `anthropic`, `ollama`) |
-| `FINANCE_LLM_MODEL` | `gpt-4o` | Model name |
-| `OPENAI_API_KEY` | — | OpenAI API key |
-| `ANTHROPIC_API_KEY` | — | Anthropic API key |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `EMBEDDING_PROVIDER` | `openai` | Embedding provider |
-| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
-| `CHUNK_SIZE` | `1000` | Text chunk size (chars) |
+| `CHUNK_SIZE` | `1000` | Characters per text chunk |
 | `CHUNK_OVERLAP` | `200` | Overlap between chunks |
-| `TOP_K` | `5` | Number of chunks retrieved |
-| `SCHEDULE_INTERVAL_HOURS` | `6` | Auto-ingestion interval |
+| `TOP_K` | `5` | Number of chunks retrieved per query |
+| `SCHEDULE_INTERVAL_HOURS` | `6` | Auto-ingestion frequency |
+
+---
 
 ## 🐳 Docker Deployment
 
 ```bash
-# Build and run everything
+# 🔨 Build & run everything (API + UI)
 docker compose up -d
 
 # Or just the API
 docker build -t finance-llm .
-docker run -p 8000:8000 --env-file .env -v ./data:/app/data finance-llm
+docker run -d \
+  -p 8000:8000 \
+  --env-file .env \
+  -v ./data:/app/data \
+  finance-llm
+
+# Then open:
+#   API → http://localhost:8000
+#   UI  → http://localhost:8501
 ```
 
+---
+
 ## 🧪 Evaluation
+
+Measure how well your RAG pipeline performs:
 
 ```bash
 python main.py evaluate
 ```
 
-Runs 5 built-in QA pairs and reports retrieval accuracy. Results saved to `eval_report.json`.
-
-Example output:
 ```
 ============================================================
   RAG Evaluation Report
 ============================================================
-  Total questions: 5
-  Passed:          4
-  Failed:          1
-  Accuracy:        80.0%
+  Total questions:  5
+  ✅ Passed:         4
+  ❌ Failed:         1
+  📊 Accuracy:      80.0%
 ============================================================
 
 ✅ What is the current federal funds rate...
    Topics found:   federal funds rate, FOMC, Fed
    Has sources:    True
-...
+
+❌ Describe what a yield curve inversion means...
+   Topics found:   yield curve, inversion
+   Topics missed:  recession
+   Has sources:    False
 ```
 
-## 🧩 Example
+Results are also saved to `eval_report.json` for tracking over time.
 
-```
-$ python main.py query "What's the Fed's current stance on rates?"
+---
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Answer                                                         │
-│                                                                 │
-│  Based on the latest FOMC meeting minutes ingested (June 2026), │
-│  the Fed has held rates steady at 5.25-5.50% for the third      │
-│  consecutive meeting. Chair Powell signaled a data-dependent    │
-│  approach...                                                    │
-│                                                                 │
-│  Sources: FOMC Minutes (Jun 2026), Powell Press Conference      │
-└─────────────────────────────────────────────────────────────────┘
+## 💼 Examples
+
+### 1. Market Analysis
+
+```bash
+python main.py query "What's the Fed's current stance on rates?"
 ```
+
+<pre>
+┌──────────────────────────────────────────────────────────────────────┐
+│ 📊 Answer                                                           │
+│                                                                      │
+│ Based on the latest FOMC meeting minutes (June 2026), the Fed has   │
+│ held rates steady at 5.25-5.50% for the third consecutive meeting.  │
+│ Chair Powell signaled a data-dependent approach, noting inflation   │
+│ remains above the 2% target but is moving in the right direction.   │
+│                                                                      │
+│ The dot plot indicates two possible cuts in H2 2026, contingent on  │
+│ continued disinflation and labor market softening. Market pricing   │
+│ implies a 65% probability of a September cut.                       │
+│                                                                      │
+│ 📚 Sources:                                                          │
+│   • FOMC Minutes (Jun 2026) — relevance: 0.94                       │
+│   • Powell Press Conference Transcript — relevance: 0.91            │
+│   • CME FedWatch Tool — relevance: 0.87                             │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Company Deep-Dive
+
+```bash
+python main.py ingest --ticker AAPL
+python main.py query "What are Apple's key risks heading into next quarter?"
+```
+
+### 3. SEC Filing Analysis
+
+```bash
+python main.py ingest --sec MSFT --sec-type 10-K
+python main.py query "What does Microsoft's 10-K say about AI investment and competition?"
+```
+
+---
+
+## 🤝 Contributing
+
+PRs are welcome! Whether it's:
+
+- 🐛 Bug fixes
+- ✨ New features (more data sources, more LLM providers)
+- 📚 Better documentation
+- 🧪 More evaluation test cases
+
+Submit a PR at [github.com/mutima89/finance-llm](https://github.com/mutima89/finance-llm)
+
+---
 
 ## 📄 License
 
-MIT
+MIT © [mutima89](https://github.com/mutima89)
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ for people who want to understand finance, not just follow it.</sub>
+</div>

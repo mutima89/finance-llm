@@ -1,5 +1,7 @@
 import datetime
+import json
 from typing import List, Optional, Dict, Any
+from pathlib import Path
 from . import config
 
 
@@ -66,3 +68,97 @@ def ingest_rss_feeds(feeds: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         except Exception as e:
             print(f"  Failed to parse feed {feed_url}: {e}")
     return docs
+
+
+def ingest_pdf(file_path: str) -> Optional[Dict[str, Any]]:
+    try:
+        import pypdf
+        path = Path(file_path)
+        reader = pypdf.PdfReader(str(path))
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        return {
+            "content": text,
+            "metadata": {
+                "source": str(path),
+                "title": path.stem,
+                "pages": len(reader.pages),
+                "ingested_at": datetime.datetime.now().isoformat(),
+                "type": "pdf",
+            },
+        }
+    except ImportError:
+        print("  pypdf not installed. Run: pip install pypdf")
+        return None
+    except Exception as e:
+        print(f"  Failed to parse PDF {file_path}: {e}")
+        return None
+
+
+def ingest_sec_filing(ticker: str, filing_type: str = "10-K", count: int = 1) -> List[Dict[str, Any]]:
+    import requests
+    from bs4 import BeautifulSoup
+    docs = []
+    try:
+        params = {
+            "action": "getcompany",
+            "CIK": ticker,
+            "type": filing_type,
+            "dateb": "",
+            "owner": "exclude",
+            "start": "",
+            "output": "atom",
+            "count": count,
+        }
+        headers = {"User-Agent": "FinanceLLM/1.0 (contact@example.com)"}
+        resp = requests.get(
+            "https://www.sec.gov/cgi-bin/browse-edgar",
+            params=params, headers=headers, timeout=15,
+        )
+        resp.raise_for_status()
+        feed = resp.json()
+        for entry in feed.get("feed", {}).get("entry", []):
+            summary = entry.get("summary", {}).get("_value", "")
+            link = ""
+            for lnk in entry.get("link", []):
+                if lnk.get("rel") == "alternate":
+                    link = lnk.get("href", "")
+                    break
+            title = entry.get("title", {}).get("_value", "")
+            docs.append({
+                "content": f"{title}\n\n{summary}",
+                "metadata": {
+                    "source": link,
+                    "title": title,
+                    "ticker": ticker.upper(),
+                    "filing_type": filing_type,
+                    "ingested_at": datetime.datetime.now().isoformat(),
+                    "type": "sec_filing",
+                },
+            })
+    except Exception as e:
+        print(f"  Failed to fetch SEC filing for {ticker}: {e}")
+    return docs
+
+
+def ingest_yfinance_data(ticker: str) -> Optional[Dict[str, Any]]:
+    try:
+        import yfinance as yf
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        content = json.dumps(info, indent=2, default=str)
+        return {
+            "content": content,
+            "metadata": {
+                "source": f"yfinance:{ticker}",
+                "title": f"{ticker.upper()} - {info.get('longName', '')}",
+                "ticker": ticker.upper(),
+                "ingested_at": datetime.datetime.now().isoformat(),
+                "type": "yfinance",
+            },
+        }
+    except ImportError:
+        print("  yfinance not installed. Run: pip install yfinance")
+        return None
+    except Exception as e:
+        print(f"  Failed to fetch yfinance data for {ticker}: {e}")
+        return None

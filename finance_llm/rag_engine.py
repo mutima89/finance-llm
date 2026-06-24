@@ -1,14 +1,111 @@
 import json
 import numpy as np
-from pathlib import Path
-from typing import List, Optional, Dict, Any
-from openai import OpenAI
+from typing import List, Optional, Dict, Any, Callable
 from . import config
+
+
+class LLMClient:
+    def __init__(self):
+        self.provider = config.LLM_PROVIDER
+        self.model = config.LLM_MODEL
+
+    def _build_system_prompt(self, context: str = "") -> str:
+        base = (
+            "You are a senior financial analyst with 80 years of Wall Street experience. "
+            "Be direct, precise, and data-driven. Avoid hype. When discussing numbers, "
+            "provide context (e.g., 'compared to last quarter'). Cite sources when possible."
+        )
+        if context:
+            base += (
+                "\n\nUse the provided context to answer. If context lacks relevant data, "
+                "say so clearly."
+            )
+        return base
+
+    def chat(self, system: str, user: str) -> str:
+        if self.provider == "anthropic":
+            return self._chat_anthropic(system, user)
+        elif self.provider == "ollama":
+            return self._chat_ollama(system, user)
+        return self._chat_openai(system, user)
+
+    def _chat_openai(self, system: str, user: str) -> str:
+        from openai import OpenAI
+        client = OpenAI(api_key=config.OPENAI_API_KEY)
+        resp = client.chat.completions.create(
+            model=self.model, temperature=0.1,
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": user}],
+        )
+        return resp.choices[0].message.content
+
+    def _chat_anthropic(self, system: str, user: str) -> str:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+        resp = client.messages.create(
+            model=self.model, max_tokens=4096, temperature=0.1,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return resp.content[0].text
+
+    def _chat_ollama(self, system: str, user: str) -> str:
+        import httpx
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "options": {"temperature": 0.1},
+        }
+        resp = httpx.post(
+            f"{config.OLLAMA_BASE_URL}/api/chat",
+            json=payload, timeout=120,
+        )
+        resp.raise_for_status()
+        lines = resp.text.strip().split("\n")
+        content = ""
+        for line in lines:
+            import json as j
+            try:
+                content += j.loads(line).get("message", {}).get("content", "")
+            except Exception:
+                pass
+        return content
+
+
+class EmbeddingClient:
+    def __init__(self):
+        self.provider = config.EMBEDDING_PROVIDER
+        self.model = config.EMBEDDING_MODEL
+
+    def embed(self, text: str) -> List[float]:
+        if self.provider == "ollama":
+            return self._embed_ollama(text)
+        return self._embed_openai(text)
+
+    def _embed_openai(self, text: str) -> List[float]:
+        from openai import OpenAI
+        client = OpenAI(api_key=config.OPENAI_API_KEY)
+        resp = client.embeddings.create(model=self.model, input=text)
+        return resp.data[0].embedding
+
+    def _embed_ollama(self, text: str) -> List[float]:
+        import httpx
+        resp = httpx.post(
+            f"{config.OLLAMA_BASE_URL}/api/embeddings",
+            json={"model": self.model, "prompt": text},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json()["embedding"]
 
 
 class FinanceRAGEngine:
     def __init__(self):
-        self.client = OpenAI(api_key=config.OPENAI_API_KEY)
+        self.llm = LLMClient()
+        self.embedder = EmbeddingClient()
         self.index_path = config.CHROMA_DIR / "faiss_index"
         self.documents: List[Dict[str, Any]] = []
         self.embeddings: List[np.ndarray] = []
@@ -44,18 +141,11 @@ class FinanceRAGEngine:
                 chunks.append(chunk)
         return chunks if chunks else [text]
 
-    def _get_embedding(self, text: str) -> List[float]:
-        resp = self.client.embeddings.create(
-            model=config.EMBEDDING_MODEL,
-            input=text,
-        )
-        return resp.data[0].embedding
-
     def ingest_documents(self, docs: List[Dict[str, Any]]):
         for doc in docs:
             chunks = self._chunk_text(doc["content"])
             for chunk in chunks:
-                emb = self._get_embedding(chunk)
+                emb = self.embedder.embed(chunk)
                 self.documents.append({
                     "content": chunk,
                     "metadata": doc.get("metadata", {}),
@@ -68,7 +158,7 @@ class FinanceRAGEngine:
         if not self.documents:
             return self._query_llm_only(question)
 
-        q_emb = np.array(self._get_embedding(question))
+        q_emb = np.array(self.embedder.embed(question))
         sims = [np.dot(q_emb, e) / (np.linalg.norm(q_emb) * np.linalg.norm(e))
                 for e in self.embeddings]
         top_idx = np.argsort(sims)[-k:][::-1]
@@ -87,36 +177,16 @@ class FinanceRAGEngine:
         return self._query_llm(question, context, sources)
 
     def _query_llm(self, question: str, context: str, sources: list) -> dict:
-        system_msg = (
-            "You are a senior financial analyst with 80 years of Wall Street experience. "
-            "Use the provided context to answer. If context lacks relevant data, say so. "
-            "Cite sources when referencing data. Be direct, precise, and data-driven."
-        )
-        resp = self.client.chat.completions.create(
-            model=config.LLM_MODEL,
-            temperature=0.1,
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"},
-            ],
-        )
-        return {"answer": resp.choices[0].message.content, "sources": sources}
+        system = self.llm._build_system_prompt(context)
+        user = f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
+        answer = self.llm.chat(system=system, user=user)
+        return {"answer": answer, "sources": sources}
 
     def _query_llm_only(self, question: str) -> dict:
-        system_msg = (
-            "You are a senior financial analyst with 80 years of Wall Street experience. "
-            "You have no specific context loaded, so answer based on your general knowledge. "
-            "State clearly when you are giving general knowledge vs. specific data."
-        )
-        resp = self.client.chat.completions.create(
-            model=config.LLM_MODEL,
-            temperature=0.1,
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": question},
-            ],
-        )
-        return {"answer": resp.choices[0].message.content, "sources": []}
+        system = self.llm._build_system_prompt()
+        user = question
+        answer = self.llm.chat(system=system, user=user)
+        return {"answer": answer, "sources": []}
 
     def get_collection_stats(self) -> dict:
         return {"document_chunks": len(self.documents)}

@@ -18,7 +18,7 @@ class LLMClient:
             "When answering:\n"
             "- Be thorough and cover all important aspects of the topic\n"
             "- Define key terms clearly\n"
-            "- Explain mechanisms and因果关系 (cause and effect)\n"
+            "- Explain mechanisms and cause-and-effect relationships\n"
             "- Mention real-world implications and historical context\n"
             "- Be direct, precise, and data-driven\n"
             "- Avoid hype and speculation"
@@ -150,7 +150,9 @@ class FinanceRAGEngine:
                 chunks.append(chunk)
         return chunks if chunks else [text]
 
-    def ingest_documents(self, docs: List[Dict[str, Any]]):
+    def ingest_documents(self, docs: List[Dict[str, Any]]) -> int:
+        """Chunk, embed and store documents. Returns the number of chunks added."""
+        added = 0
         for doc in docs:
             chunks = self._chunk_text(doc["content"])
             for chunk in chunks:
@@ -160,7 +162,9 @@ class FinanceRAGEngine:
                     "metadata": doc.get("metadata", {}),
                 })
                 self.embeddings.append(np.array(emb))
+                added += 1
         self._persist()
+        return added
 
     def query(self, question: str, k: Optional[int] = None) -> dict:
         k = k or config.TOP_K

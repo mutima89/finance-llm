@@ -8,14 +8,18 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install requests beautifulsoup4 lxml python-dotenv
-      - env:
-          SEC_USER_AGENT: "FinanceLLM-CI mutima89@users.noreply.github.com"
-        run: |
+      - run: |
           python - <<'PY' 2>&1 | while IFS= read -r line; do echo "::notice::$line"; done
-          import requests, re
-          for ua in ["Mutima Research mutima89@users.noreply.github.com", "FinanceLLM admin@example.com", "Mozilla/5.0 (X11; Linux x86_64)"]:
-              r = requests.get("https://www.sec.gov/files/company_tickers.json", headers={"User-Agent": ua, "Accept-Encoding": "gzip, deflate"}, timeout=30)
-              t = re.sub(r"<[^>]+>", " ", r.text); t = re.sub(r"\s+", " ", t)
-              print("UA", repr(ua), r.status_code, t[:260] if r.status_code != 200 else "OK")
-          print("IP", requests.get("https://api.ipify.org", timeout=15).text)
+          import traceback
+          from finance_llm import config
+          from finance_llm.ingestion import ingest_sec_filing
+          print("UA", config.SEC_USER_AGENT)
+          for t, f in [("AAPL","10-K"), ("MSFT","10-Q"), ("TSLA","8-K")]:
+              docs = ingest_sec_filing(t, f)
+              if docs:
+                  d = docs[0]
+                  print("RESULT", t, f, "|", d["metadata"]["title"], "|", len(d["content"].split()), "words |", d["metadata"]["source"])
+                  if t == "AAPL": print("SAMPLE", " ".join(d["content"].split()[300:350]))
+              else:
+                  print("EMPTY", t, f)
           PY

@@ -114,8 +114,17 @@ def _resolve_cik(ticker_or_cik: str) -> Optional[tuple]:
 
 
 def _filing_text(html_text: str) -> str:
+    import warnings
     from bs4 import BeautifulSoup
-    soup = BeautifulSoup(html_text, "lxml")
+    try:
+        from bs4 import XMLParsedAsHTMLWarning
+    except ImportError:  # older beautifulsoup4
+        XMLParsedAsHTMLWarning = UserWarning
+    # Inline XBRL filings start with an XML declaration but are XHTML;
+    # the HTML parser handles them correctly.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)
+        soup = BeautifulSoup(html_text, "lxml")
     # Inline XBRL filings carry a hidden machine-readable header; drop it.
     for tag in soup(["script", "style", "ix:header"]):
         tag.decompose()

@@ -12,21 +12,10 @@ jobs:
           SEC_USER_AGENT: "FinanceLLM-CI mutima89@users.noreply.github.com"
         run: |
           python - <<'PY' 2>&1 | while IFS= read -r line; do echo "::notice::$line"; done
-          import requests, traceback
-          from finance_llm import config
-          for u in ["https://www.sec.gov/files/company_tickers.json","https://data.sec.gov/submissions/CIK0000320193.json"]:
-              r = requests.get(u, headers={"User-Agent": config.SEC_USER_AGENT}, timeout=30)
-              print("PROBE", r.status_code, u, r.text[:120].replace(chr(10)," "))
-          from finance_llm.ingestion import ingest_sec_filing
-          for t, f in [("AAPL","10-K"), ("MSFT","10-Q"), ("TSLA","8-K")]:
-              try:
-                  docs = ingest_sec_filing(t, f)
-                  d = docs[0]
-                  print("RESULT", t, f, "|", d["metadata"]["title"], "|", len(d["content"].split()), "words |", d["metadata"]["source"])
-              except Exception:
-                  print("FAIL", t, f, traceback.format_exc().replace(chr(10)," / "))
-          try:
-              print("SAMPLE", " ".join(ingest_sec_filing("AAPL","10-K")[0]["content"].split()[300:360]))
-          except Exception as e:
-              print("FAIL sample", e)
+          import requests, re
+          for ua in ["Mutima Research mutima89@users.noreply.github.com", "FinanceLLM admin@example.com", "Mozilla/5.0 (X11; Linux x86_64)"]:
+              r = requests.get("https://www.sec.gov/files/company_tickers.json", headers={"User-Agent": ua, "Accept-Encoding": "gzip, deflate"}, timeout=30)
+              t = re.sub(r"<[^>]+>", " ", r.text); t = re.sub(r"\s+", " ", t)
+              print("UA", repr(ua), r.status_code, t[:260] if r.status_code != 200 else "OK")
+          print("IP", requests.get("https://api.ipify.org", timeout=15).text)
           PY

@@ -26,7 +26,7 @@ Finance LLM is a compact Retrieval-Augmented Generation (RAG) pipeline for finan
 |---|---|
 | **LLM providers** | OpenAI, Anthropic Claude, or a local Ollama model — selected with one environment variable |
 | **Embeddings** | OpenAI (`text-embedding-3-small` by default) or Ollama (e.g. `nomic-embed-text`), independent of the chat provider |
-| **Ingestion** | Plain text, PDF (`pypdf`), any web page (BeautifulSoup), RSS news feeds, Yahoo Finance ticker data (`yfinance`), SEC EDGAR filings |
+| **Ingestion** | Plain text, PDF (`pypdf`), any web page (BeautifulSoup), RSS news feeds, Yahoo Finance ticker data (`yfinance`), full-text SEC EDGAR filings (10-K, 10-Q, 8-K, …) |
 | **Retrieval** | Word-window chunking with overlap, cosine-similarity top-*k* search, index persisted to disk |
 | **Interfaces** | Typer CLI (7 commands), Streamlit chat UI, FastAPI REST service with OpenAPI docs |
 | **Automation** | Background scheduler re-ingests RSS feeds every *N* hours |
@@ -61,14 +61,7 @@ pip install -r requirements.txt
 cp .env.example .env        # then edit .env and add your key(s)
 ```
 
-> [!IMPORTANT]
-> Settings are read from environment variables. The application does not currently call `load_dotenv()`, so when running outside Docker, export the file into your shell first:
->
-> ```bash
-> set -a && source .env && set +a
-> ```
->
-> Docker Compose reads `.env` automatically through `env_file`.
+Settings in `.env` are loaded automatically at start-up. Variables already set in the environment take precedence, so you can override any value per command (`TOP_K=8 python main.py query "..."`).
 
 ### First run
 
@@ -99,6 +92,15 @@ Options can be combined in a single ingest call:
 python main.py ingest --pdf reports/q3-earnings.pdf --url https://example.com/analysis
 ```
 
+`--sec` accepts a ticker or a numeric CIK and ingests the full text of the company's most recent filing of the requested type, fetched through SEC's EDGAR JSON APIs:
+
+```bash
+python main.py ingest --sec AAPL                  # latest 10-K
+python main.py ingest --sec MSFT --sec-type 10-Q  # latest 10-Q
+```
+
+A 10-K is typically 30,000+ words (≈ 200 chunks), so expect one embedding call per chunk.
+
 ### Web UI
 
 ```bash
@@ -122,7 +124,7 @@ Interactive documentation is generated at **`/docs`** (Swagger UI) and **`/redoc
 |---|---|---|---|
 | `GET` | `/` | — | Service status |
 | `POST` | `/query` | `{"question": str, "k": int = 5}` | `{"answer": str, "sources": [{content, metadata, relevance_score}]}` |
-| `POST` | `/ingest` | `{"text": str, "source": str = "manual", "metadata": dict?}` | `{"status": "ok", ...}` |
+| `POST` | `/ingest` | `{"text": str, "source": str = "manual", "metadata": dict?}` | `{"status": "ok", "chunks_added": int}` |
 | `GET` | `/stats` | — | `{"document_chunks": int, "model": str}` |
 
 ```bash
@@ -199,10 +201,11 @@ All settings are environment variables with defaults defined in [`finance_llm/co
 | Variable | Default | Notes |
 |---|---|---|
 | `FINANCE_LLM_PROVIDER` | `openai` | `openai`, `anthropic` or `ollama` |
-| `FINANCE_LLM_MODEL` | `gpt-4o` | Model name for the chosen provider — **also used for Ollama** |
+| `FINANCE_LLM_MODEL` | `gpt-4o` | Model name for the chosen provider |
 | `OPENAI_API_KEY` | — | Required for OpenAI chat or OpenAI embeddings |
 | `ANTHROPIC_API_KEY` | — | Required when the provider is `anthropic` |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server address |
+| `OLLAMA_MODEL` | `llama3` | Chat model when the provider is `ollama`; takes precedence over `FINANCE_LLM_MODEL` |
 | `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
 | `EMBEDDING_MODEL` | `text-embedding-3-small` | Changing it requires rebuilding the index |
 
@@ -214,6 +217,7 @@ All settings are environment variables with defaults defined in [`finance_llm/co
 | `CHUNK_OVERLAP` | `200` | Characters (≈ 40 words) |
 | `TOP_K` | `5` | Default chunks per query |
 | `SCHEDULE_INTERVAL_HOURS` | `6` | RSS re-ingestion interval |
+| `SEC_USER_AGENT` | `FinanceLLM/1.0 (admin@example.com)` | SEC asks automated clients to send a name and contact email; set your own |
 
 **Provider examples**
 
@@ -226,7 +230,7 @@ OPENAI_API_KEY=sk-...
 
 # Fully local
 FINANCE_LLM_PROVIDER=ollama
-FINANCE_LLM_MODEL=llama3
+OLLAMA_MODEL=llama3
 EMBEDDING_PROVIDER=ollama
 EMBEDDING_MODEL=nomic-embed-text
 ```
@@ -246,10 +250,7 @@ This measures **topical coverage of the generated answer**, not retrieval precis
 
 ## Known limitations
 
-- **`.env` is not loaded automatically** outside Docker (see [Install](#install)).
-- **SEC ingestion** requests EDGAR's Atom feed but parses the response as JSON, so `--sec` currently returns no documents.
-- **`OLLAMA_MODEL`** in `.env.example` is not read; Ollama uses `FINANCE_LLM_MODEL`.
-- **`/ingest`** always reports `chunks_added: 1` regardless of how many chunks were created.
+- **SEC rate limiting**: EDGAR rejects requests (HTTP 403) when the `User-Agent` looks generic or a shared IP has been rate-limited. Set `SEC_USER_AGENT` to your own name and email.
 - **Ticker data** is the raw `yfinance` `info` dictionary serialised as JSON, which retrieves less cleanly than prose.
 - **No deduplication**: re-ingesting the same feed or document adds duplicate chunks.
 - **Embeddings are generated one chunk per API call**, which is slow for large PDFs.

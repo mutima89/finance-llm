@@ -53,8 +53,8 @@ def query_endpoint(req: QueryRequest):
 @app.post("/ingest")
 def ingest_endpoint(req: IngestRequest):
     doc = ingest_text(req.text, source=req.source, metadata=req.metadata)
-    rag.ingest_documents([doc])
-    return {"status": "ok", "chunks_added": 1}
+    added = rag.ingest_documents([doc])
+    return {"status": "ok", "chunks_added": added}
 
 
 @app.get("/stats", response_model=StatsResponse)

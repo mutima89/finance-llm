@@ -80,8 +80,9 @@ def ingest(
 
     if rss:
         with console.status("[green]Fetching RSS feeds..."):
-            docs.extend(ingestion.ingest_rss_feeds())
-        console.print(f"[green]Loaded {len(docs)} RSS items[/green]")
+            rss_docs = ingestion.ingest_rss_feeds()
+        docs.extend(rss_docs)
+        console.print(f"[green]Loaded {len(rss_docs)} RSS items[/green]")
 
     if ticker:
         with console.status(f"[green]Fetching yfinance data for {ticker}..."):
@@ -92,17 +93,21 @@ def ingest(
 
     if sec:
         with console.status(f"[green]Fetching {sec_type} filings for {sec}..."):
-            docs.extend(ingestion.ingest_sec_filing(sec, filing_type=sec_type))
-        console.print(f"[green]Loaded SEC filings for {sec.upper()}[/green]")
+            sec_docs = ingestion.ingest_sec_filing(sec, filing_type=sec_type)
+        docs.extend(sec_docs)
+        if sec_docs:
+            console.print(f"[green]Loaded {len(sec_docs)} {sec_type} filing(s) for {sec.upper()}[/green]")
+        else:
+            console.print(f"[yellow]No {sec_type} filings found for {sec.upper()}[/yellow]")
 
     if not docs:
         console.print("[yellow]No documents to ingest. Use --file, --pdf, --url, --rss, --ticker, or --sec[/yellow]")
         return
 
     with console.status("[green]Indexing..."):
-        rag.ingest_documents(docs)
+        added = rag.ingest_documents(docs)
 
-    console.print(f"[bold green]✓ Ingested {len(docs)} document(s)[/bold green]")
+    console.print(f"[bold green]✓ Ingested {len(docs)} document(s) as {added} chunk(s)[/bold green]")
 
 
 @app.command()
